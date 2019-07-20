@@ -7,7 +7,7 @@ global {
         corpus=(Lang: grn=(DataCondition: all NT)
 		      ess=(DataCondition: all NT)
 		      esu=(DataCondition: all NT)
-		      iku=(DataCondition: all NT)
+		      iku=(DataCondition: all NT))
 		      
 }
 
@@ -267,9 +267,9 @@ task tokenize
        
 
 	elif [[ "${condition}" == "character" ]]; then
-       cat ${train_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v "^ *$" h> ${train} 
-       cat ${dev_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v "^ *$" > ${dev}
-       cat ${test_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v "^ *$" > ${test}
+       cat ${train_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v '^ *$' h> ${train} 
+       cat ${dev_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v '^ *$' > ${dev}
+       cat ${test_in} | sed 's/ /_/g; s/\(.\)/\1 /g; s/  */ /g' | grep -v '^ *$' > ${test}
 	fi
 
 }
@@ -285,39 +285,39 @@ task train
 	< dir=@tokenize
 	< activate=@awd_lstm_lm
 	< main=@awd_lstm_lm
-	> log=${lang}_${condition}.log 
-	> err=${lang}_${condition}.err
-	> model=${lang}_${condition}.pt	
+	> log  # Hayley, unfortunately this syntax isn't allowed:  =${lang}_${condition}.log 
+	> err  # =${lang}_${condition}.err
+	> model="model.pt" #  =${lang}_${condition}.pt	
 {
 	if [[ "${condition}" == "word" ]]; then
-		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${lang}_${condition}.pt --dropouth 0.2 --seed 1882 \
-        > ${lang}_${condition}.log \
-        2> ${lang}_${condition}.err
+		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+        > ${log} \
+        2> ${err}
 
     elif [[ "${condition}" == "morpheme" ]]; then
-		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${lang}_${condition}.pt --dropouth 0.2 --seed 1882 \
-        > ${lang}_${condition}.log \
-        2> ${lang}_${condition}.err
+		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+        > ${log} \
+        2> ${err}
 
 
     elif [[ "${condition}" == "morfessor" ]]; then
-		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${lang}_${condition}.pt --dropouth 0.2 --seed 1882 \
-        > ${lang}_${condition}.log \
-        2> ${lang}_${condition}.err
+		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+        > ${log} \
+        2> ${err}
 
     elif [[ "${condition}" == "bpe" ]]; then
 		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
         --dropouth 0.1 --dropouti 0.1 --dropout 0.4 --wdrop 0.2 --wdecay 1.2e-6 --bptt 200 --batch_size 128 --optimizer adam \
-        --lr 1e-3 --data ${dir} --save ${lang}_${condition}.pt --when 25 35 \
-        > ${lang}_${condition}.log \
-        2> ${lang}_${condition}.err
+        --lr 1e-3 --data ${dir} --save ${model} --when 25 35 \
+        > ${log} \
+        2> ${err}
 
     elif [[ "${condition}" == "character" ]]; then
 		CUDA_VISIBLE_DEVICES=3 python ${main} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
         --dropouth 0.1 --dropouti 0.1 --dropout 0.4 --wdrop 0.2 --wdecay 1.2e-6 --bptt 200 --batch_size 128 --optimizer adam \
-        --lr 1e-3 --data ${dir} --save ${lang}_${condition}.pt --when 25 35 \
-        > ${lang}_${condition}.log \
-        2> ${lang}_${condition}.err
+        --lr 1e-3 --data ${dir} --save ${model} --when 25 35 \
+        > ${log} \
+        2> ${err}
 
 }
 	
