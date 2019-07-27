@@ -1,5 +1,5 @@
 ###############################################################################
-# Language Modeling on Wikitext-2
+# Language Modeling on Penn Tree Bank
 #
 # This file generates new sentences sampled from the language model
 #
@@ -8,14 +8,17 @@
 import argparse
 
 import torch
+from torch.autograd import Variable
 
 import data
 
-parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 Language Model')
+parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
 # Model parameters.
-parser.add_argument('--data', type=str, default='./data/wikitext-2',
+parser.add_argument('--data', type=str, default='./data/penn',
                     help='location of the data corpus')
+parser.add_argument('--model', type=str, default='LSTM',
+                    help='type of recurrent net (LSTM, QRNN)')
 parser.add_argument('--checkpoint', type=str, default='./model.pt',
                     help='model checkpoint to use')
 parser.add_argument('--outf', type=str, default='generated.txt',
@@ -37,70 +40,67 @@ torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     if not args.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
-
-device = torch.device("cuda" if args.cuda else "cpu")
+    else:
+        torch.cuda.manual_seed(args.seed)
 
 if args.temperature < 1e-3:
     parser.error("--temperature has to be greater or equal 1e-3")
 
 with open(args.checkpoint, 'rb') as f:
-    model = torch.load(f).to(device)
+    model, _, _ = torch.load(f)
 model.eval()
+if args.model == 'QRNN':
+    model.reset()
+
+if args.cuda:
+    model.cuda()
+else:
+    model.cpu()
 
 corpus = data.Corpus(args.data)
 ntokens = len(corpus.dictionary)
 
 lines = []
-
 with open(args.data + 'test.txt', 'r') as test:
     lines = test.readlines()
-
-lines = [line for line in lines if line.strip() != ""]
+lines = [line for line in lines if line.strip() != '']
 first_line = lines[0].split() + ['<eos>']
 first_word = first_line[0]
 
-# don't randomly generate, read in first word from first sentence
-input = torch.tensor([[corpus.dictionary.word2idx[first_word]]]).to(device)
-# input = torch.randint(ntokens, (1, 1), dtype=torch.long).to(device)
-# initialize with first word
+# input = Variable(torch.rand(1, 1).mul(ntokens).long(), volatile=True)
+input = torch.tensor([[corpus.dictionary.word2idx[first_word]]])
+if args.cuda:
+    input.data = input.data.cuda()
 hidden = model.init_hidden(1)
 
 success = 0
+unk = 0
 error = 0
 wpa = 0
 
-with open(args.outf, 'w') as outf:
-    with torch.no_grad():  # no training
-        for line in lines:
-            tokens = line.split() + ['<eos>']
-            for token in tokens[1:]:
-            # for i in range(args.words):
-                output, hidden = model(input, hidden) #!!
-                # given history, predict distribution over next word
-                # diversity not necessary
-                # soft max?
-                word_weights = output.squeeze().div(args.temperature).exp().cpu() 
-                print(word_weights)
-                word_idx = torch.multinomial(word_weights, 1)[0]
-                input.fill_(corpus.dictionary.word2idx[token])
-                # input.fill_(word_idx)
-                try:
-                    word = corpus.dictionary.idx2word[word_idx]
-                except:
-                    word = '<unk>'
+with open(args.outf, 'a') as outf:
+    for line in lines:
+        tokens = line.split() + ['<eos>']
+        for token in tokens[1:]:
+            output, hidden = model(input, hidden)
+            word_weights = model.decoder(output).squeeze().data.div(args.temperature).exp().cpu()
+            word_idx = torch.multinomial(word_weights, 1)[0]
+            try:
+                input.data.fill_(corpus.dictionary.word2idx[token])
+            except:
+                input.data.fill_(corpus.dictionary.word2idx['<unk>'])
+            try:
+                word = corpus.dictionary.idx2word[word_idx]
+            except:
+                word = '<unk>'
+            print(word, token)
 
-                # compare most probable word to actual next word
-                if word == token:
-                    success = success + 1
-                else:
-                    error = error + 1
+            if word == token:
+                success +=  1
+            elif word == '<unk>' and token == '<unk>':
+                unk += 1
+            else:
+                error += 1
 
-                print(word, token)
-
-                # outf.write(word + ('\n' if i % 20 == 19 else ' '))
-
-                # if i % args.log_interval == 0:
-                    # print('| Generated {}/{} words'.format(i, args.words))
-            wpa = success / (success + error) 
-        outf.write(str(wpa))
-
+        wpa = success / (success + error)
+    outf.write('\n' + args.checkpoint + ': ' + str(wpa))
