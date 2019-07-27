@@ -1,0 +1,12 @@
+Tokenizer Version 1.1
+Language: grn
+Number of threads: 1
+WARNING: No known abbreviations for language 'grn', attempting fall-back to English version...
+Tokenizer Version 1.1
+Language: grn
+Number of threads: 1
+WARNING: No known abbreviations for language 'grn', attempting fall-back to English version...
+Tokenizer Version 1.1
+Language: grn
+Number of threads: 1
+WARNING: No known abbreviations for language 'grn', attempting fall-back to English version...
