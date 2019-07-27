@@ -663,8 +663,8 @@ task train
   source ${activate}
   export CUDA_VISIBLE_DEVICES=6
   if [[ "${condition}" == "word" ]]; then
-     #python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \ 
-     python ${main} --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \ 
+     #python ${main} --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
