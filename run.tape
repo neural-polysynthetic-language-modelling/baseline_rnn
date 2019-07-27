@@ -141,7 +141,7 @@ task data
         #mv simple-examples/data/ptb.char.train.txt .
         #mv simple-examples/data/ptb.char.test.txt .
         #mv simple-examples/data/ptb.char.valid.txt .
-        #rm -rf simple-examples
+        rm -rf simple-examples
         echo "$(cat ${test} | sed 's/ /_/g; s/\(.\)/\1 /g; s/\s\s*/ /g' | grep -v '^ *$' | wc -w ) + $(cat ${test} | sed 's/ /_/g; s/\(.\)/\1 /g; s/\s\s*/ /g' | grep -v '^ *$' | wc -l )" | bc -l > ${char_cnt}
 
      elif [[ "${corpus}" == "wikitext2" ]]; then
@@ -661,10 +661,10 @@ task train
 {
 
   source ${activate}
-  export CUDA_VISIBLE_DEVICES=6
-  if [[ "${condition}" == "word" ]]; then
-     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \ 
-     #python ${main} --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+  export CUDA_VISIBLE_DEVICES=7
+  
+    if [[ "${condition}" == "word" ]]; then
+    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
@@ -767,9 +767,9 @@ task char_ppl
 
 plan {
 
-      #reach data via (Lang: eng ) * (DataCondition: all NT )
+      reach data via (Lang: eng ) * (EnglishCorpus: ptb )
       #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize:  word ) * (BPE: *)
-      reach train via (Lang: esu) * (DataCondition: all) * (Tokenize: word) 
+      #reach train via (Lang: esu) * (DataCondition: all) * (Tokenize: word) 
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
       #reach char_ppl via (Lang: eng) * (DataCondition: NT) * (Tokenize: word) * (BPE: *)
 }
