@@ -19,6 +19,22 @@ task JSALT_NPLM_data
       git clone ${url} data
 }
 
+
+task ess_fst
+      :: url="https://github.com/neural-polysynthetic-language-modelling/baseline_rnn.git"
+      > dir="ess_fst"
+      > ess_fst_preprocess="ess_fst/ess_fst_preprocess.py"
+      > all_train="ess_fst/all.train.analyzed.ess"
+      > all_valid="ess_fst/all.valid.analyzed.ess"
+      > all_test="ess_fst/all.test.analyzed.ess"
+      > nt_train="ess_fst/nt.train.analyzed.ess"
+{
+      git clone ${url} data
+      mv data/ess_fst .
+      rm -rf data
+
+}
+
 task awd_lstm_lm
       :: url="https://github.com/salesforce/awd-lstm-lm.git"
       > activate="/opt/python/3.7/venv/pytorch0.4_cuda10.0/bin/activate"
@@ -484,9 +500,15 @@ task data
 task tokenize
     :: lang=$lang
     :: corpus=$corpus
-    :: condition=(Tokenize: word morpheme morfessor bpe character)    
-    :: bpe_size=(Tokenize: word morpheme morfessor bpe=(BPE: 500 5k) character)   
+    :: condition=(Tokenize: word morpheme morph_char morfessor bpe character)    
+    :: bpe_size=(Tokenize: word morpheme morph_char morfessor bpe=(BPE: 500 5k) character)   
      < jsalt_data=$dir@JSALT_NPLM_data 
+     < ess_fst_dir=$dir@ess_fst
+     < ess_fst_preprocess=@ess_fst
+     < ess_all_train=$all_train@ess_fst
+     < ess_all_valid=$all_valid@ess_fst
+     < ess_all_test=$all_test@ess_fst
+     < ess_nt_train=$nt_train@ess_fst
      < train_in=$train@data
      < valid_in=$valid@data
      < test_in=$test@data
@@ -534,6 +556,25 @@ task tokenize
         echo "WARNING: We don't actually have ${lang} ${condition} data"
         touch ${train} ${valid} ${test}
      fi
+
+
+  elif [[ "${condition}" == "morph_char" ]]; then
+     if [[ "${lang}" == "ess" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          python ${ess_fst_preprocess} -ip=${ess_nt_train} -op=train.txt
+          python ${ess_fst_preprocess} -ip=${ess_all_valid} -op=valid.txt
+          python ${ess_fst_preprocess} -ip=${ess_all_test} -op=test.txt
+
+        elif [[ "${corpus}" == "all" ]]; then
+          python ${ess_fst_preprocess} -ip=${ess_all_train} -op=train.txt
+          python ${ess_fst_preprocess} -ip=${ess_all_valid} -op=valid.txt
+          python ${ess_fst_preprocess} -ip=${ess_all_test} -op=test.txt
+
+        fi
+
+     fi
+     
+
   elif [[ "${condition}" == "morfessor" ]]; then
       if [ -f "morfessor.model"]; then
           echo "Morfessor-train has already been run."
@@ -673,6 +714,11 @@ task train
         > ${log} \
         2> ${err}
 
+   elif [[ "${condition}" == "morph_char" ]]; then
+    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+        > ${log} \
+        2> ${err}
+
 
     elif [[ "${condition}" == "morfessor" ]]; then
     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
@@ -767,9 +813,9 @@ task char_ppl
 
 plan {
 
-      reach data via (Lang: eng ) * (EnglishCorpus: ptb )
+      #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
       #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize:  word ) * (BPE: *)
-      #reach train via (Lang: esu) * (DataCondition: all) * (Tokenize: word) 
+      reach train via (Lang: ess) * (DataCondition: *) * (Tokenize: morph_char) 
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
-      #reach char_ppl via (Lang: eng) * (DataCondition: NT) * (Tokenize: word) * (BPE: *)
+      #reach char_ppl via (Lang: *) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
 }
