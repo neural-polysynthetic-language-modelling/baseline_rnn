@@ -1,6 +1,11 @@
-for prefix in "train valid test".split():
-	with open("all." + prefix + ".analyzed.ess", "r") as fst_analysis:
-		with open("all." + prefix + ".analyzed.prerpocessed.ess", "w") as fst_preprocessed:
+import os
+import argparse
+
+def preprocess_fst(in_file, out_file):
+	assert os.path.exists(in_file)
+	print("Opening the fst analyzed file in ", in_file)
+	with open(in_file, "r") as fst_analysis:
+		with open(out_file, "w") as fst_preprocessed:
 			for line in fst_analysis:
 				tokens = line.split()
 				for token in tokens:
@@ -16,4 +21,15 @@ for prefix in "train valid test".split():
 						fst_preprocessed.write(new_token + " _ ")
 
 				fst_preprocessed.write("\n")
-			
+
+	print("Saved the preprocessed file in ", out_file)
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--in_path', '-ip', type=str, required=True, 
+	help= 'path to the file with fst output e.g. ess_fst/all.train.analyzed.ess')
+	parser.add_argument('--out_path', '-op', type=str, required=True, 
+	help= 'path to the output file e.g. ess_fst/all.train.analyzed.preprocessed.ess')
+	args = parser.parse_args()
+	preprocess_fst(args.in_path, args.out_path)
