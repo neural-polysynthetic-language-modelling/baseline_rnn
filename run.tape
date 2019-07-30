@@ -20,18 +20,20 @@ task JSALT_NPLM_data
 }
 
 
-task fst_data
-      :: url="https://github.com/neural-polysynthetic-language-modelling/baseline_rnn.git"
-      > ess_fst_preprocess="fst_data/ess_fst_preprocess.py"
-      > ess_fst_char_preprocess="fst_data/ess_fst_char_preprocess.py"
-      > ess_fst_bpe_preprocess="fst_data/ess_fst_bpe_preprocess.py"
-      > grn_fst_char_preprocess="fst_data/grn_fst_char_preprocess.py"
-      > grn_fst_bpe_preprocess="fst_data/grn_fst_bpe_preprocess.py"
+task utils
+      > ess_fst_preprocess="./fst_data/ess_fst_preprocess.py"
+      > ess_fst_char_preprocess="./fst_data/ess_fst_char_preprocess.py"
+      > ess_fst_bpe_preprocess="./fst_data/ess_fst_bpe_preprocess.py"
+      > grn_fst_char_preprocess="./fst_data/grn_fst_char_preprocess.py"
+      > grn_fst_bpe_preprocess="./fst_data/grn_fst_bpe_preprocess.py"
+      > awd_lstm_lm_updated="./awd-lstm-lm_updated/main.py"
+      > calculate_oov="./calculate_oov.py"
       > dir="./fst_data"
 {
-      git clone ${url} data
-      mv data/fst_data .
-      rm -rf data
+      ln -s ../../../fst_data/ fst_data
+      ln -s ../../../awd-lstm-lm_updated/ awd-lstm-lm_updated 
+      ln -s ../../../calculate_oov.py calculate_oov.py 
+      sed -i"" "s,store_false,store_true," awd-lstm-lm_updated/main.py
 
 }
 
@@ -503,12 +505,12 @@ task tokenize
     :: condition=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe character)    
     :: bpe_size=(Tokenize: word morpheme morph_char morph_bpe=(BPE: 500 5k) morfessor bpe=(BPE: 500 5k) character)   
      < jsalt_data=$dir@JSALT_NPLM_data 
-     < ess_fst_preprocess=@fst_data
-     < ess_fst_char_preprocess=@fst_data
-     < ess_fst_bpe_preprocess=@fst_data
-     < grn_fst_char_preprocess=@fst_data
-     < grn_fst_bpe_preprocess=@fst_data
-     < fst_dir=$dir@fst_data
+     < ess_fst_preprocess=@utils
+     < ess_fst_char_preprocess=@utils
+     < ess_fst_bpe_preprocess=@utils
+     < grn_fst_char_preprocess=@utils
+     < grn_fst_bpe_preprocess=@utils
+     < fst_dir=$dir@utils
      < train_in=$train@data
      < valid_in=$valid@data
      < test_in=$test@data
@@ -745,6 +747,22 @@ task tokenize
 
 }
 
+task oov_rate
+    :: lang=$lang
+    :: corpus=$corpus
+    :: condition=@tokenize  
+    :: bpe_size=@tokenize
+     < dir=@tokenize
+     < calculate_oov=@utils
+     > test_oov
+{
+
+  python ${calculate_oov} --path=${dir} > test_oov
+     
+}
+
+
+
 task train
     :: lang=$lang
     :: corpus=$corpus
@@ -756,48 +774,49 @@ task train
   < dir=@tokenize
   < activate=@awd_lstm_lm
   < main=@awd_lstm_lm
+  < awd_lstm_lm_updated=@utils
   > log  
   > err 
   > model="model.pt" 
 {
 
   source ${activate}
-  export CUDA_VISIBLE_DEVICES=5
+  export CUDA_VISIBLE_DEVICES=7
   
     if [[ "${condition}" == "word" ]]; then
-    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
     elif [[ "${condition}" == "morpheme" ]]; then
-    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
    elif [[ "${condition}" == "morph_char" ]]; then
-    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
    elif [[ "${condition}" == "morph_bpe" ]]; then
-    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
     elif [[ "${condition}" == "morfessor" ]]; then
-    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
         > ${log} \
         2> ${err}
 
     elif [[ "${condition}" == "bpe" ]]; then
-    python ${main} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
         --dropouth 0.1 --dropouti 0.1 --dropout 0.4 --wdrop 0.2 --wdecay 1.2e-6 --bptt 200 --batch_size 128 --optimizer adam \
         --lr 1e-3 --data ${dir} --save ${model} --when 25 35 \
         > ${log} \
         2> ${err}
 
     elif [[ "${condition}" == "character" ]]; then
-    python ${main} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
+    python ${awd_lstm_lm_updated} --cuda --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 \
         --dropouth 0.1 --dropouti 0.1 --dropout 0.4 --wdrop 0.2 --wdecay 1.2e-6 --bptt 200 --batch_size 128 --optimizer adam \
         --lr 1e-3 --data ${dir} --save ${model} --when 25 35 \
         > ${log} \
@@ -880,7 +899,8 @@ plan {
 
       #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
       #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize: morph_bpe) * (BPE: *)
-      reach train via (Lang: ess grn) * (DataCondition: *) * (Tokenize: morph_bpe bpe ) * (BPE: *)
+      #reach train via (Lang: ess grn) * (DataCondition: *) * (Tokenize: character ) * (BPE: *)
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
-      #reach char_ppl via (Lang: *) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
+      #reach char_ppl via (Lang: ess grn) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
+      reach oov_rate via (Lang: eng) * (DataCondition: *) * (EnglishCorpus: ptb wikitext2 ) * (Tokenize: word morfessor bpe character) * (BPE: *)
 }
