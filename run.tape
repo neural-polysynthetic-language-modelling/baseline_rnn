@@ -22,6 +22,7 @@ task JSALT_NPLM_data
 
 task fst_data
       :: url="https://github.com/neural-polysynthetic-language-modelling/baseline_rnn.git"
+      > ess_fst_preprocess="fst_data/ess_fst_preprocess.py"
       > ess_fst_char_preprocess="fst_data/ess_fst_char_preprocess.py"
       > ess_fst_bpe_preprocess="fst_data/ess_fst_bpe_preprocess.py"
       > dir="./fst_data"
@@ -500,6 +501,7 @@ task tokenize
     :: condition=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe character)    
     :: bpe_size=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe=(BPE: 500 5k) character)   
      < jsalt_data=$dir@JSALT_NPLM_data 
+     < ess_fst_preprocess=@fst_data
      < ess_fst_char_preprocess=@fst_data
      < ess_fst_bpe_preprocess=@fst_data
      < fst_dir=$dir@fst_data
@@ -533,14 +535,14 @@ task tokenize
          fi
      elif [[ "${lang}" == "ess" ]]; then
         if [[ "${corpus}" == "NT" ]]; then
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/NT/fst/train.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > train.txt
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/NT/fst/valid.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > valid.txt
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/NT/fst/test.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > test.txt
+          python ${ess_fst_preprocess} -ip=${fst_dir}/DataCondition.NT+Lang.ess/nt.train.analyzed.ess -op=train.txt
+          python ${ess_fst_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.valid.analyzed.ess -op=valid.txt
+          python ${ess_fst_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.test.analyzed.ess  -op=test.txt
 
         elif [[ "${corpus}" == "all" ]]; then
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/all/fst/train.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > train.txt
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/all/fst/valid.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > valid.txt
-             cat ${jsalt_data}/Inuit-Yupik/ess/parallel_corpus/new_testament/preprocess/monolingual/all/fst/test.tok.ess | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > test.txt
+          for prefix in train valid test; do
+            python ${ess_fst_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -op=${prefix}.txt
+           done
         fi
 
      elif [[ "${lang}" == "esu" ]]; then
@@ -694,7 +696,7 @@ task train
 {
 
   source ${activate}
-  export CUDA_VISIBLE_DEVICES=6
+  export CUDA_VISIBLE_DEVICES=5
   
     if [[ "${condition}" == "word" ]]; then
     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
@@ -761,7 +763,8 @@ task tutorial_train
   > model="model.pt" 
 {
 
-  CUDA_VISIBLE_DEVICES=4 python ${main} --data ${dir} --save ${model} --cuda &> ${log} 2> ${err}
+  export CUDA_VISIBLE_DEVICES=6
+  python ${main} --data ${dir} --save ${model} --cuda &> ${log} 2> ${err}
 
 }
 
@@ -806,8 +809,8 @@ task char_ppl
 plan {
 
       #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
-      reach tokenize via (Lang: grn ) * (DataCondition: *) * (Tokenize:  morpheme ) * (BPE: *)
-      # reach train via (Lang: grn) * (DataCondition: *) * (Tokenize: morpheme) 
+      #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize:  morpheme ) * (BPE: *)
+      reach train via (Lang: ess) * (DataCondition: *) * (Tokenize: morpheme) 
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
       #reach char_ppl via (Lang: *) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
 }
