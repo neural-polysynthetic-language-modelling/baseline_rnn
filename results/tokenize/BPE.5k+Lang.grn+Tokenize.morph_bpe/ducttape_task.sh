@@ -2,23 +2,23 @@
 # Note: This script is for archival; it is not actually run by ducttape
 export learn_bpe="/home/hpark129/projects/baseline_RNN/results/subword_nmt/Baseline.baseline/learn_bpe.py"
 export ess_fst_bpe_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/ess_fst_bpe_preprocess.py"
-export valid_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/valid.txt"
+export valid_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.grn/valid.txt"
 export ess_fst_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/ess_fst_preprocess.py"
 export fst_dir="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data"
 export grn_fst_char_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/grn_fst_char_preprocess.py"
 export ess_fst_char_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/ess_fst_char_preprocess.py"
 export apply_bpe="/home/hpark129/projects/baseline_RNN/results/subword_nmt/Baseline.baseline/apply_bpe.py"
-export train_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/train.txt"
+export train_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.grn/train.txt"
 export jsalt_data="/home/hpark129/projects/baseline_RNN/results/JSALT_NPLM_data/Baseline.baseline/data"
 export grn_fst_bpe_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/grn_fst_bpe_preprocess.py"
-export test_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/test.txt"
-export train="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.ess+Tokenize.morph_bpe/train.txt"
-export valid="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.ess+Tokenize.morph_bpe/valid.txt"
-export test="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.ess+Tokenize.morph_bpe/test.txt"
-export dir="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.ess+Tokenize.morph_bpe/."
+export test_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.grn/test.txt"
+export train="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.grn+Tokenize.morph_bpe/train.txt"
+export valid="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.grn+Tokenize.morph_bpe/valid.txt"
+export test="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.grn+Tokenize.morph_bpe/test.txt"
+export dir="/home/hpark129/projects/baseline_RNN/results/tokenize/BPE.5k+Lang.grn+Tokenize.morph_bpe/."
 export corpus="all"
 export condition="morph_bpe"
-export lang="ess"
+export lang="grn"
 export bpe_size="5k"
 
   if [[ "${condition}" == "word" ]]; then
@@ -199,7 +199,7 @@ export bpe_size="5k"
         fi
 
         for prefix in train valid test; do
-          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' > ${prefix}.txt
+          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' | grep -v '^$' > ${prefix}.txt
         done
 
        elif [[ "${bpe_size}" == "5k" ]]; then

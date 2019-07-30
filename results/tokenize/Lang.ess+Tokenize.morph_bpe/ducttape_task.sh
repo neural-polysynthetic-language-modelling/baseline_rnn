@@ -5,10 +5,12 @@ export ess_fst_bpe_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_
 export valid_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/valid.txt"
 export ess_fst_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/ess_fst_preprocess.py"
 export fst_dir="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data"
+export grn_fst_char_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/grn_fst_char_preprocess.py"
 export ess_fst_char_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/ess_fst_char_preprocess.py"
 export apply_bpe="/home/hpark129/projects/baseline_RNN/results/subword_nmt/Baseline.baseline/apply_bpe.py"
 export train_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/train.txt"
 export jsalt_data="/home/hpark129/projects/baseline_RNN/results/JSALT_NPLM_data/Baseline.baseline/data"
+export grn_fst_bpe_preprocess="/home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/fst_data/grn_fst_bpe_preprocess.py"
 export test_in="/home/hpark129/projects/baseline_RNN/results/data/Lang.ess/test.txt"
 export train="/home/hpark129/projects/baseline_RNN/results/tokenize/Lang.ess+Tokenize.morph_bpe/train.txt"
 export valid="/home/hpark129/projects/baseline_RNN/results/tokenize/Lang.ess+Tokenize.morph_bpe/valid.txt"
@@ -70,6 +72,18 @@ export bpe_size="500"
             python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -op=${prefix}.txt
            done
         fi
+
+      elif [[ "${lang}" == "grn" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          for prefix in train valid test; do
+            python ${grn_fst_char_preprocess} -ip=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -op=${prefix}.txt
+          done
+
+        elif [[ "${corpus}" == "all" ]]; then
+          for prefix in train valid test; do
+            python ${grn_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -op=${prefix}.txt
+          done
+        fi
       fi
 
   elif [[ "${condition}" == "morph_bpe" ]]; then
@@ -98,12 +112,29 @@ export bpe_size="500"
           fi
         fi
 
-      #elif [[ "${lang}" == "grn" ]]; then
-        #if [[ "${corpus}" == "NT" ]]; then
+      elif [[ "${lang}" == "grn" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -bp=../BPE.500+DataCondition.NT+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -bp=../BPE.5k+DataCondition.NT+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          fi
 
-        #elif [[ "${corpus}" == "all" ]]; then
-
-        #fi
+        elif [[ "${corpus}" == "all" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -bp=../BPE.500+DataCondition.all+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -bp=../BPE.5k+DataCondition.all+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          fi
+        fi
       fi
 
   elif [[ "${condition}" == "morfessor" ]]; then
@@ -168,7 +199,7 @@ export bpe_size="500"
         fi
 
         for prefix in train valid test; do
-          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' | grep -v '^$' > ${prefix}.txt
+          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' > ${prefix}.txt
         done
 
        elif [[ "${bpe_size}" == "5k" ]]; then

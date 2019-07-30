@@ -25,6 +25,8 @@ task fst_data
       > ess_fst_preprocess="fst_data/ess_fst_preprocess.py"
       > ess_fst_char_preprocess="fst_data/ess_fst_char_preprocess.py"
       > ess_fst_bpe_preprocess="fst_data/ess_fst_bpe_preprocess.py"
+      > grn_fst_char_preprocess="fst_data/grn_fst_char_preprocess.py"
+      > grn_fst_bpe_preprocess="fst_data/grn_fst_bpe_preprocess.py"
       > dir="./fst_data"
 {
       git clone ${url} data
@@ -91,7 +93,7 @@ task data
 
         for sub_directory in new_testament ; do
           # Test (John):
-          ls ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory} | grep 43_John | while read line; do cat ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory}/$line | sed "s/^[0-9]\+ //g" | sed 's/--/ & /g'| sed 's/\s\s*/ /g' |grep -v '^$'>> test; done
+          ls ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory} | grep 43_John | while read line; do cat ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory}/$line | sed "s/^[0-9]\+ //g" | sed 's/--/ & /g'| sed 's/\s\s*/ /g' |grep -v '^$' >> test; done
 
           # Dev (Luke):
           ls ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory} | grep 42_Luke | while read line; do cat ${jsalt_data}/Inuit-Yupik/esu/parallel_corpus/bible/engBible/${sub_directory}/$line | sed "s/^[0-9]\+ //g" | sed 's/--/ & /g'| sed 's/\s\s*/ /g' |grep -v '^$'>> valid; done
@@ -499,11 +501,13 @@ task tokenize
     :: lang=$lang
     :: corpus=$corpus
     :: condition=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe character)    
-    :: bpe_size=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe=(BPE: 500 5k) character)   
+    :: bpe_size=(Tokenize: word morpheme morph_char morph_bpe=(BPE: 500 5k) morfessor bpe=(BPE: 500 5k) character)   
      < jsalt_data=$dir@JSALT_NPLM_data 
      < ess_fst_preprocess=@fst_data
      < ess_fst_char_preprocess=@fst_data
      < ess_fst_bpe_preprocess=@fst_data
+     < grn_fst_char_preprocess=@fst_data
+     < grn_fst_bpe_preprocess=@fst_data
      < fst_dir=$dir@fst_data
      < train_in=$train@data
      < valid_in=$valid@data
@@ -565,7 +569,69 @@ task tokenize
           for prefix in train valid test; do
             python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -op=${prefix}.txt
            done
+        fi
 
+      elif [[ "${lang}" == "grn" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          for prefix in train valid test; do
+            python ${grn_fst_char_preprocess} -ip=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -op=${prefix}.txt
+          done
+
+        elif [[ "${corpus}" == "all" ]]; then
+          for prefix in train valid test; do
+            python ${grn_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -op=${prefix}.txt
+          done
+        fi
+      fi
+
+  elif [[ "${condition}" == "morph_bpe" ]]; then
+      if [[ "${lang}" == "ess" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.ess/nt.train.analyzed.ess -bp=../BPE.500+DataCondition.all+Lang.ess+Tokenize.bpe/train.txt -op=train.txt 
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.valid.analyzed.ess -bp=../BPE.500+DataCondition.all+Lang.ess+Tokenize.bpe/valid.txt -op=valid.txt 
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.test.analyzed.ess -bp=../BPE.500+DataCondition.all+Lang.ess+Tokenize.bpe/test.txt -op=test.txt 
+
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.ess/nt.train.analyzed.ess -bp=../BPE.5k+DataCondition.all+Lang.ess+Tokenize.bpe/train.txt -op=train.txt 
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.valid.analyzed.ess -bp=../BPE.5k+DataCondition.all+Lang.ess+Tokenize.bpe/valid.txt -op=valid.txt 
+            python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.test.analyzed.ess -bp=../BPE.5k+DataCondition.all+Lang.ess+Tokenize.bpe/test.txt -op=test.txt 
+          fi
+          
+        elif [[ "${corpus}" == "all" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            for prefix in train valid test; do
+              python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -bp=../BPE.500+DataCondition.all+Lang.ess+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            for prefix in train valid test; do
+              python ${ess_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -bp=../BPE.5k+DataCondition.all+Lang.ess+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          fi
+        fi
+
+      elif [[ "${lang}" == "grn" ]]; then
+        if [[ "${corpus}" == "NT" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -bp=../BPE.500+DataCondition.NT+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt -bp=../BPE.5k+DataCondition.NT+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          fi
+
+        elif [[ "${corpus}" == "all" ]]; then
+          if [[ "${bpe_size}" == "500" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -bp=../BPE.500+DataCondition.all+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          elif [[ "${bpe_size}" == "5k" ]]; then
+            for prefix in train valid test; do
+              python ${grn_fst_bpe_preprocess} -fp=${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt -bp=../BPE.5k+DataCondition.all+Lang.grn+Tokenize.bpe/${prefix}.txt -op=${prefix}.txt 
+            done
+          fi
         fi
       fi
 
@@ -631,7 +697,7 @@ task tokenize
         fi
 
         for prefix in train valid test; do
-          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' | grep -v '^$' > ${prefix}.txt
+          cat ${prefix}.bpe | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/@@ _ / /g' > ${prefix}.txt
         done
 
        elif [[ "${bpe_size}" == "5k" ]]; then
@@ -713,6 +779,10 @@ task train
         > ${log} \
         2> ${err}
 
+   elif [[ "${condition}" == "morph_bpe" ]]; then
+    python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
+        > ${log} \
+        2> ${err}
 
     elif [[ "${condition}" == "morfessor" ]]; then
     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
@@ -809,8 +879,8 @@ task char_ppl
 plan {
 
       #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
-      #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize:  morpheme ) * (BPE: *)
-      reach train via (Lang: ess) * (DataCondition: *) * (Tokenize: morpheme) 
+      #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize: morph_bpe) * (BPE: *)
+      reach train via (Lang: ess grn) * (DataCondition: *) * (Tokenize: morph_bpe bpe ) * (BPE: *)
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
       #reach char_ppl via (Lang: *) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
 }

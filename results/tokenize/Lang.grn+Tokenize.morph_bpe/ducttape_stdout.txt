@@ -1,0 +1,9 @@
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.grn/train.txt
+Opening the bpe file in  ../BPE.500+DataCondition.all+Lang.grn+Tokenize.bpe/train.txt
+Saved the preprocessed file in  train.txt
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.grn/valid.txt
+Opening the bpe file in  ../BPE.500+DataCondition.all+Lang.grn+Tokenize.bpe/valid.txt
+Saved the preprocessed file in  valid.txt
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.grn/test.txt
+Opening the bpe file in  ../BPE.500+DataCondition.all+Lang.grn+Tokenize.bpe/test.txt
+Saved the preprocessed file in  test.txt
