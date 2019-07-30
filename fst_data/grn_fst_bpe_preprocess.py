@@ -12,6 +12,8 @@ def preprocess_fst(fst_file, bpe_file, out_file):
 				for fst_line, bpe_line in zip(fst_analysis, bpe_text):
 					fst_tokens = fst_line.split()
 					bpe_tokens = bpe_line.split(" _ ")
+					n_tokens = len(fst_tokens)
+					token_idx = 0
 					for fst_token, bpe_token in zip(fst_tokens, bpe_tokens):
 						if fst_token.startswith("*"):
 							new_token = bpe_token + " _ "
