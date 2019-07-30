@@ -16,8 +16,8 @@ def preprocess_fst(fst_file, bpe_file, out_file):
 					token_idx = 0
 					for fst_token, bpe_token in zip(fst_tokens, bpe_tokens):
 						if fst_token.startswith("*"):
-							new_token = bpe_token 		
-							new_token = new_token.replace("\n", "")		
+							new_token = bpe_token
+							new_token = new_token.replace("\n", "")
 							if token_idx == n_tokens-1:
 								fst_preprocessed.write(new_token)
 							else:
