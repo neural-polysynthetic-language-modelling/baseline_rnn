@@ -1,0 +1,6 @@
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.ess/all.train.analyzed.ess
+Saved the preprocessed file in  train.txt
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.ess/all.valid.analyzed.ess
+Saved the preprocessed file in  valid.txt
+Opening the fst analyzed file in  /home/hpark129/projects/baseline_RNN/results/fst_data/Baseline.baseline/./fst_data/DataCondition.all+Lang.ess/all.test.analyzed.ess
+Saved the preprocessed file in  test.txt
