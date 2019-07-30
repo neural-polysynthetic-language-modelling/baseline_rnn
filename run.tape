@@ -20,17 +20,14 @@ task JSALT_NPLM_data
 }
 
 
-task ess_fst
+task fst_data
       :: url="https://github.com/neural-polysynthetic-language-modelling/baseline_rnn.git"
-      > dir="ess_fst"
-      > ess_fst_preprocess="ess_fst/ess_fst_preprocess.py"
-      > all_train="ess_fst/all.train.analyzed.ess"
-      > all_valid="ess_fst/all.valid.analyzed.ess"
-      > all_test="ess_fst/all.test.analyzed.ess"
-      > nt_train="ess_fst/nt.train.analyzed.ess"
+      > ess_fst_char_preprocess="fst_data/ess_fst_char_preprocess.py"
+      > ess_fst_bpe_preprocess="fst_data/ess_fst_bpe_preprocess.py"
+      > dir="./fst_data"
 {
       git clone ${url} data
-      mv data/ess_fst .
+      mv data/fst_data .
       rm -rf data
 
 }
@@ -500,15 +497,12 @@ task data
 task tokenize
     :: lang=$lang
     :: corpus=$corpus
-    :: condition=(Tokenize: word morpheme morph_char morfessor bpe character)    
-    :: bpe_size=(Tokenize: word morpheme morph_char morfessor bpe=(BPE: 500 5k) character)   
+    :: condition=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe character)    
+    :: bpe_size=(Tokenize: word morpheme morph_char morph_bpe morfessor bpe=(BPE: 500 5k) character)   
      < jsalt_data=$dir@JSALT_NPLM_data 
-     < ess_fst_dir=$dir@ess_fst
-     < ess_fst_preprocess=@ess_fst
-     < ess_all_train=$all_train@ess_fst
-     < ess_all_valid=$all_valid@ess_fst
-     < ess_all_test=$all_test@ess_fst
-     < ess_nt_train=$nt_train@ess_fst
+     < ess_fst_char_preprocess=@fst_data
+     < ess_fst_bpe_preprocess=@fst_data
+     < fst_dir=$dir@fst_data
      < train_in=$train@data
      < valid_in=$valid@data
      < test_in=$test@data
@@ -527,14 +521,14 @@ task tokenize
   elif [[ "${condition}" == "morpheme" ]]; then
      if [[ "${lang}" == "grn" ]]; then
          if [[ "${corpus}" == "NT" ]]; then
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/NT/fst/train.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > train.txt
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/NT/fst/valid.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > valid.txt
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/NT/fst/test.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > test.txt
+            for prefix in train valid test; do
+              cat ${fst_dir}/DataCondition.NT+Lang.grn/${prefix}.txt | sed 's/\*/ /g; s/\s\s*/ /g; s/^ *//g; s/ *$//g; s/ / _ /g; s/>/ /g' > ${prefix}.txt
+            done
 
          elif [[ "${corpus}" == "all" ]]; then
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/all/fst/train.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > train.txt
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/all/fst/valid.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > valid.txt
-             cat ${jsalt_data}/Other/grn/grn-spa/preprocess/monolingual/all/fst/test.tok.grn | sed 's/^ *//g; s/ *$//g; s/ / _ /g; s/\*/ /g; s/>/ /g' > test.txt
+            for prefix in train valid test; do
+              cat ${fst_dir}/DataCondition.all+Lang.grn/${prefix}.txt | sed 's/\*/ /g; s/\s\s*/ /g; s/^ *//g; s/ *$//g; s/ / _ /g; s/>/ /g'> ${prefix}.txt
+            done
 
          fi
      elif [[ "${lang}" == "ess" ]]; then
@@ -561,19 +555,17 @@ task tokenize
   elif [[ "${condition}" == "morph_char" ]]; then
      if [[ "${lang}" == "ess" ]]; then
         if [[ "${corpus}" == "NT" ]]; then
-          python ${ess_fst_preprocess} -ip=${ess_nt_train} -op=train.txt
-          python ${ess_fst_preprocess} -ip=${ess_all_valid} -op=valid.txt
-          python ${ess_fst_preprocess} -ip=${ess_all_test} -op=test.txt
+          python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.NT+Lang.ess/nt.train.analyzed.ess -op=train.txt
+          python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.valid.analyzed.ess -op=valid.txt
+          python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.test.analyzed.ess  -op=test.txt
 
         elif [[ "${corpus}" == "all" ]]; then
-          python ${ess_fst_preprocess} -ip=${ess_all_train} -op=train.txt
-          python ${ess_fst_preprocess} -ip=${ess_all_valid} -op=valid.txt
-          python ${ess_fst_preprocess} -ip=${ess_all_test} -op=test.txt
+          for prefix in train valid test; do
+            python ${ess_fst_char_preprocess} -ip=${fst_dir}/DataCondition.all+Lang.ess/all.${prefix}.analyzed.ess -op=${prefix}.txt
+           done
 
         fi
-
-     fi
-     
+      fi
 
   elif [[ "${condition}" == "morfessor" ]]; then
       if [ -f "morfessor.model"]; then
@@ -702,7 +694,7 @@ task train
 {
 
   source ${activate}
-  export CUDA_VISIBLE_DEVICES=7
+  export CUDA_VISIBLE_DEVICES=6
   
     if [[ "${condition}" == "word" ]]; then
     python ${main} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
@@ -814,8 +806,8 @@ task char_ppl
 plan {
 
       #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
-      #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize:  word ) * (BPE: *)
-      reach train via (Lang: ess) * (DataCondition: *) * (Tokenize: morph_char) 
+      reach tokenize via (Lang: grn ) * (DataCondition: *) * (Tokenize:  morpheme ) * (BPE: *)
+      # reach train via (Lang: grn) * (DataCondition: *) * (Tokenize: morpheme) 
       #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
       #reach char_ppl via (Lang: *) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
 }
