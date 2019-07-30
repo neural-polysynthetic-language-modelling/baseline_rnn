@@ -15,12 +15,22 @@ def preprocess_fst(fst_file, bpe_file, out_file):
 					for fst_token, bpe_token in zip(fst_tokens, bpe_tokens):
 						if fst_token.startswith("*"):
 							new_token = bpe_token + " _ "
-							new_token = new_token.replace("\n _ ", "")
-							fst_preprocessed.write(new_token)
+							new_token = new_token.replace("\n", "")
+							if token_idx == n_tokens-1:
+								fst_preprocessed.write(new_token)
+							else:
+								fst_preprocessed.write(new_token + " _ ")
+							token_idx += 1
+
 
 						else:
 							new_token = fst_token.replace(">", " ")
-							fst_preprocessed.write(new_token + " _ ")
+							new_token = new_token.replace("\n", "")
+							if token_idx == n_tokens-1:
+								fst_preprocessed.write(new_token)
+							else:
+								fst_preprocessed.write(new_token + " _ ")
+							token_idx += 1
 
 					fst_preprocessed.write("\n")
 
