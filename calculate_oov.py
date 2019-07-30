@@ -21,7 +21,6 @@ def calculate_oov_rate(in_file):
 				if word not in train_dic:
 					oov_list.append(word)
 				tokens += 1
-	print(oov_list)
 	print("Number of OoV: {}".format(len(oov_list)))
 	print("Number of tokens in the test set: {}".format(tokens))
 	print("Oov Ratio: {}%".format(len(oov_list)/tokens*100))
