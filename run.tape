@@ -781,7 +781,7 @@ task train
 {
 
   source ${activate}
-  export CUDA_VISIBLE_DEVICES=7
+  export CUDA_VISIBLE_DEVICES=2
   
     if [[ "${condition}" == "word" ]]; then
     python ${awd_lstm_lm_updated} --cuda --epochs 200 --data ${dir} --save ${model} --dropouth 0.2 --seed 1882 \
@@ -865,11 +865,13 @@ task ppl
   < log=@train
   < test=@tokenize
   > token_loss
+  > token_bpc
   > ppl_log
   > token_cnt
   
 {
     cat ${log} | grep "test loss" | awk -F " " '{print $8}' > ${token_loss}
+    cat ${log} | grep "test bpc" | awk -F " " '{print $16}' > ${token_bpc}
     echo "<eos> count: $(wc ${test} | awk -F " " '{print $1}')" > ${ppl_log}
     echo "Word count: $(wc ${test} | awk -F " " '{print $2}')" >> ${ppl_log}
     echo "Test token count: $(echo $(wc ${test} | awk -F " " '{print $1}') + $(wc ${test} | awk -F " " '{print $2}') | bc -l)" >> ${ppl_log}
@@ -891,16 +893,35 @@ task char_ppl
     echo -e "${lang}\t${corpus}\t${condition}\t${bpe_size}" > ${character_perplexity}
     echo "Token-level loss: $(cat ${token_loss})" >> ${character_perplexity}
     echo "Token count: $(cat ${token_cnt})" >> ${character_perplexity}
+    echo "Divided by character count of the test set: ${char_cnt}" >> ${character_perplexity}
     echo "Char-level loss: $(echo $(cat ${token_loss})*$(cat ${token_cnt})/$(cat ${char_cnt}) | bc -l)" >> ${character_perplexity}
     echo Char-level ppl: $(echo "e($(cat ${token_loss})*$(cat ${token_cnt})/$(cat ${char_cnt}))" | bc -l) >> ${character_perplexity}
 }
+
+task eng_bpc
+   :: lang=$lang
+   :: corpus=$corpus
+   :: condition=@tokenize  
+   :: bpe_size=@tokenize
+   < token_bpc=@ppl
+   < token_cnt=@ppl
+   > bpc_eng
+{
+ 
+ # 105077 = character count of English NT
+ echo bits per English character: $(echo "$(cat ${token_bpc})*$(cat ${token_cnt}) /105077" | bc -l) > bpc_eng
+}
+
+
 
 plan {
 
       #reach data via (Lang: eng ) * (EnglishCorpus: ptb )
       #reach tokenize via (Lang: ess ) * (DataCondition: *) * (Tokenize: morph_bpe) * (BPE: *)
       #reach train via (Lang: ess grn) * (DataCondition: *) * (Tokenize: character ) * (BPE: *)
-      #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: word) * (BPE: *) 
-      #reach char_ppl via (Lang: ess grn) * (DataCondition: *) * (Tokenize: word) * (BPE: *)
-      reach oov_rate via (Lang: eng) * (DataCondition: *) * (EnglishCorpus: ptb wikitext2 ) * (Tokenize: word morfessor bpe character) * (BPE: *)
+      #reach tutorial_train via (Lang: grn ) * (DataCondition: *) * (Tokenize: *) * (BPE: *) 
+      #reach char_ppl via (Lang: eng) * (DataCondition: NT) * (Tokenize: word morfessor bpe character) * (BPE: *)
+      #reach oov_rate via (Lang: eng) * (DataCondition: *) * (EnglishCorpus: ptb wikitext2 ) * (Tokenize: word morfessor bpe character) * (BPE: *)
+      reach eng_char_ppl via (Lang: esu iku spa) * (DataCondition: NT) * (Tokenize: word morfessor bpe character) * (BPE: *)
 }
+
